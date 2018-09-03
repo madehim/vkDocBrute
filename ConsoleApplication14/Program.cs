@@ -29,7 +29,7 @@ namespace test1234
         {
             Console.WriteLine("Команды id, minrange, maxrange, start, help, exit");
             string cmd = Console.ReadLine();
-            
+
 
 
             while (true) //console menu stuff
@@ -74,7 +74,7 @@ namespace test1234
                         cmd = Console.ReadLine();
                         break;
                     case "status":
-                        Console.WriteLine(DateTime.Now.ToString() + " проверено " + (maxrange - num).ToString() + " из " +(maxrange - minrange).ToString() + ", количество потоков - " + threadlist.Count);
+                        Console.WriteLine(DateTime.Now.ToString() + " проверено " + (maxrange - num).ToString() + " из " + (maxrange - minrange).ToString() + ", количество потоков - " + threadlist.Count);
                         cmd = Console.ReadLine();
                         break;
                     case "exit":
@@ -125,12 +125,12 @@ namespace test1234
 
             Console.WriteLine("Proxy in file - " + proxylistfromfile.Length);
 
-            
+
 
             //looking for alive proxy, if list exist
             if (proxylistfromfile != null)
             {
-               
+
                 string[] proxylist = new string[proxylistfromfile.Length];
                 int k = 0;
                 for (int i = 0; i < proxylistfromfile.Length; i++)
@@ -143,7 +143,7 @@ namespace test1234
                 }
                 Console.WriteLine("Alive proxy - " + (k + 1));
 
-                
+
                 //start thread with alive proxy
                 for (int i = 0; i < k; i++)
                 {
@@ -157,10 +157,10 @@ namespace test1234
             tre.Name = "own pc";
             tre.Start("0");
             ProxyCheckTimer = new Timer(CheckProxyTimerCallback, null, 0, 1200 * proxylistfromfile.Length);
-            
+
         }
 
-        
+
 
 
         static void ProxyThread(object obj)
@@ -179,12 +179,12 @@ namespace test1234
 
                 wp.UseDefaultCredentials = true;//idk why its here
 
-                
+
 
                 while (true) //check every page with step down
                 {
 
-                    
+
 
                     mtNum.WaitOne();
                     if (num == minrange) //check for end
@@ -218,7 +218,7 @@ namespace test1234
                     }
                     skipedPagesMutex.ReleaseMutex();
 
-                    
+
                     mtNum.ReleaseMutex();
 
 
@@ -284,12 +284,12 @@ namespace test1234
                 skipedPages.Add(htmlstr);
                 skipedPagesMutex.ReleaseMutex();
 
-                
+
 
                 StreamWriter sw = new StreamWriter("log" + substring[0] + ".txt", true);
                 sw.WriteLine(DateTime.Now.ToString() + " " + htmlstr + " " + e.ToString());
                 sw.Close();
-             
+
             }
         }
 
@@ -316,7 +316,7 @@ namespace test1234
             }
         }
 
-        
+
 
         private static void CheckProxyTimerCallback(Object o)//check dead proxy, mb back to live
         {
@@ -378,5 +378,5 @@ namespace test1234
         }
     }
 
-    
+
 }

@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2003
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApplication14", "ConsoleApplication14\ConsoleApplication14.csproj", "{53507698-461C-4805-8242-3165213A6B2F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkDocsBrut", "ConsoleApplication14\VkDocsBrut.csproj", "{53507698-461C-4805-8242-3165213A6B2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,6 +18,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5551A691-D81D-48EB-B8D4-A7CCB4F0BAC3}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
