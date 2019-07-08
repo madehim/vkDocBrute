@@ -116,7 +116,7 @@ namespace VkDocsBrute
                     case "start":
                         if (threadlist.Count == 0)
                             flagStop = false;
-                        if (!flagStop)
+                        if (!flagStop && threadlist.Count == 0)
                         {
                             maxrange = num;
                             Thread tr = new Thread(start);
@@ -149,6 +149,8 @@ namespace VkDocsBrute
                         break;
                     case "stop":
                         flagStop = true;
+                        if (ProxyCheckTimer != null)
+                            ProxyCheckTimer.Change(-1, Timeout.Infinite);
                         cmd = Console.ReadLine();
                         break;
                     default:
@@ -196,19 +198,18 @@ namespace VkDocsBrute
 
         static void start(object id)
         {
+            GC.Collect(2);
             string[] proxylistfromfile = null; //get proxy list
             if (System.IO.File.Exists("proxylist.txt"))
                 proxylistfromfile = System.IO.File.ReadAllLines("proxylist.txt");
-
-            proxylistfromfile = CheckProxyFile(proxylistfromfile);
-
-            Console.WriteLine("Proxy in file - " + proxylistfromfile.Length + ". Checking alive proxy.");
-
 
 
             //looking for alive proxy, if list exist
             if (proxylistfromfile != null)
             {
+                proxylistfromfile = CheckProxyFile(proxylistfromfile);
+
+                Console.WriteLine("Proxy in file - " + proxylistfromfile.Length + ". Checking alive proxy.");
 
                 string[] proxylist = new string[proxylistfromfile.Length];
                 int k = 0;
@@ -238,7 +239,9 @@ namespace VkDocsBrute
             Console.WriteLine("Thread " + tre.Name + " have starting.");
             tre.Start("0");
             threadlist.Add(tre.Name);
-            ProxyCheckTimer = new Timer(CheckProxyTimerCallback, null, 0, 1200 * proxylistfromfile.Length);
+
+            if (proxylistfromfile != null)
+                ProxyCheckTimer = new Timer(CheckProxyTimerCallback, null, 0, 1200 * proxylistfromfile.Length);
 
         }
 
@@ -257,7 +260,7 @@ namespace VkDocsBrute
                 if (obj.ToString() != "0")
                     client.Proxy = wp;
 
-                wp.UseDefaultCredentials = true;//idk why its here
+                //wp.UseDefaultCredentials = true;//idk why its here
 
 
 
@@ -306,12 +309,12 @@ namespace VkDocsBrute
                     if (htmlstr1 == "")//create link for number
                     {
                         if (strtmp.Length < 9)
-                            for (int j = strtmp.Length; j < 9; j++)
-                                strtmp = "0" + strtmp;
+                            strtmp = new string('0', 9 - strtmp.Length) + strtmp;
                         htmlstr = "https://vk.com/doc" + id + "_" + strtmp;
                     }
                     else
                         htmlstr = htmlstr1;
+
 
                     string htmlCode = client.DownloadString(htmlstr);//get page
 
@@ -443,18 +446,15 @@ namespace VkDocsBrute
                         {
 
                         }
-
                 }
 
             }
-            else
-                ProxyCheckTimer.Dispose();
         }
 
 
 
 
-        private static string[] CheckProxyFile(string[] proxylistfromfile)//
+        private static string[] CheckProxyFile(string[] proxylistfromfile)//check for dublicate
         {
             List<string> tmp = new List<string>();
             for (int i = 0; i < proxylistfromfile.Length; i++)
