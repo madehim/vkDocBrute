@@ -8,26 +8,46 @@ using System.IO;
 using System.Net.NetworkInformation;
 using System.Diagnostics;
 
-namespace test1234
+namespace VkDocsBrute
 {
     class Program
     {
-        public static int id = 1;
-        public static int minrange = 0;
-        public static int maxrange = 455000000;
-        public static int num = 455000000;
-        public static bool flagStop = false;
+        static int id = 1;
+        static int minrange = 0;
+        static int maxrange = 455000000;
+        static int num = 455000000;
+        static bool flagStop = false;
+        static SettingsFile settingsFile = new SettingsFile();
 
-        public static List<string> skipedPages = new List<string>();
-        public static List<string> threadlist = new List<string>();
-        public static Timer ProxyCheckTimer; //check dead proxy
-        public static Mutex threadListMutex = new Mutex();
-        public static Mutex skipedPagesMutex = new Mutex();
+        static List<string> skipedPages = new List<string>();
+        static List<string> threadlist = new List<string>();
+        static Timer ProxyCheckTimer; //check dead proxy
+        static object lockNum = new object();
+        static object threadListLock = new object();
+        static object skipedPagesLock = new object();
+
 
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Команды id, minrange, maxrange, start, help, exit");
+            if (settingsFile.IsExist())
+            {
+                if (settingsFile.ReadSettingsFile(out Dictionary<string, int> settings))
+                {
+                    id = settings["id"];
+                    minrange = settings["minrange"];
+                    num = settings["num"];
+                }
+                else
+                    settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+            }
+            else
+            {
+                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+            }
+
+
+            Console.WriteLine("Команды help, status, id, minrange, maxrange, start, stop, exit");
             string cmd = Console.ReadLine();
 
 
@@ -37,18 +57,60 @@ namespace test1234
                 switch (cmd)
                 {
                     case "id":
-                        Console.WriteLine("Введите id");
-                        id = Convert.ToInt32(Console.ReadLine());
+                        if (threadlist.Count != 0)
+                        {
+                            Console.WriteLine("Остановите выполнение, прежде чем изменять переменные.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Текущий id " + id + ". Для изменения введите новый числовой id.");
+                            if (IsInt(Console.ReadLine(), out int result))
+                            {
+                                id = result;
+                                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                                Console.WriteLine("ID изменен.");
+                            }
+                            else
+                                Console.WriteLine("Принимается только числовой ID.");
+                        }
                         cmd = Console.ReadLine();
                         break;
                     case "minrange":
-                        Console.WriteLine("Введите minrange");
-                        minrange = Convert.ToInt32(Console.ReadLine());
+                        if (threadlist.Count != 0)
+                        {
+                            Console.WriteLine("Остановите выполнение, прежде чем изменять переменные.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Текущий minRange " + minrange + ". Для изменения введите новый числовой minRange.");
+                            if (IsInt(Console.ReadLine(), out int result1))
+                            {
+                                minrange = result1;
+                                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                                Console.WriteLine("minRange изменен.");
+                            }
+                            else
+                                Console.WriteLine("Принимается только числовой minRange.");
+                        }
                         cmd = Console.ReadLine();
                         break;
                     case "maxrange":
-                        Console.WriteLine("Введите maxrange");
-                        num = Convert.ToInt32(Console.ReadLine());
+                        if (threadlist.Count != 0)
+                        {
+                            Console.WriteLine("Остановите выполнение, прежде чем изменять переменные.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Текущий maxRange " + num + ". Для изменения введите новый числовой maxRange.");
+                            if (IsInt(Console.ReadLine(), out int result2))
+                            {
+                                num = result2;
+                                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                                Console.WriteLine("maxRange изменен.");
+                            }
+                            else
+                                Console.WriteLine("Принимается только числовой maxRange.");
+                        }
                         cmd = Console.ReadLine();
                         break;
                     case "start":
@@ -65,7 +127,8 @@ namespace test1234
                         cmd = Console.ReadLine();
                         break;
                     case "help":
-                        Console.WriteLine("Вводим id, прописываем start. stop, exit для завершения");
+                        Console.WriteLine();
+                        Console.Write("help - эта команда \nid - смена целевого id. \nminrange - смена нижнего порога работы программы \nmaxrange - смена верхнего порога работы программы \nstatus - информация о текущих переменных или ходе работы \nstop - остановка текущей задачи \nexit - выход из приложения\n");
                         cmd = Console.ReadLine();
                         break;
                     case "threadlist":
@@ -74,10 +137,14 @@ namespace test1234
                         cmd = Console.ReadLine();
                         break;
                     case "status":
-                        Console.WriteLine(DateTime.Now.ToString() + " проверено " + (maxrange - num).ToString() + " из " + (maxrange - minrange).ToString() + ", количество потоков - " + threadlist.Count);
+                        if (threadlist.Count != 0)
+                            Console.WriteLine(DateTime.Now.ToString() + " проверено " + (maxrange - num).ToString() + " из " + (maxrange - minrange).ToString() + ", количество потоков - " + threadlist.Count + ". Текущий id " + id);
+                        else
+                            Console.WriteLine("ID - " + id + ", minRange - " + minrange + ", num - " + num);
                         cmd = Console.ReadLine();
                         break;
                     case "exit":
+                        settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
                         Environment.Exit(0);
                         break;
                     case "stop":
@@ -92,6 +159,18 @@ namespace test1234
 
             }
         }
+
+        static bool IsInt(string readLine, out int result)
+        {
+            result = 0;
+            if (int.TryParse(readLine, out int res))
+            {
+                result = res;
+                return true;
+            }
+            return false;
+        }
+
 
 
         //not used
@@ -115,7 +194,7 @@ namespace test1234
 
 
 
-        public static void start(object id)
+        static void start(object id)
         {
             string[] proxylistfromfile = null; //get proxy list
             if (System.IO.File.Exists("proxylist.txt"))
@@ -123,7 +202,7 @@ namespace test1234
 
             proxylistfromfile = CheckProxyFile(proxylistfromfile);
 
-            Console.WriteLine("Proxy in file - " + proxylistfromfile.Length);
+            Console.WriteLine("Proxy in file - " + proxylistfromfile.Length + ". Checking alive proxy.");
 
 
 
@@ -151,11 +230,14 @@ namespace test1234
                     tr.Name = proxylist[i];
                     tr.Start(proxylist[i]);
                     threadlist.Add(proxylist[i]);
+                    Console.WriteLine("Thread " + tr.Name + " have starting.");
                 }
             }
             Thread tre = new Thread(ProxyThread); //start own pc thread
             tre.Name = "own pc";
+            Console.WriteLine("Thread " + tre.Name + " have starting.");
             tre.Start("0");
+            threadlist.Add(tre.Name);
             ProxyCheckTimer = new Timer(CheckProxyTimerCallback, null, 0, 1200 * proxylistfromfile.Length);
 
         }
@@ -170,8 +252,6 @@ namespace test1234
             string[] substring = obj.ToString().Split(delimiter);
             try
             {
-                Mutex mtNum = new Mutex();
-
                 WebClient client = new WebClient();//start webclient with/without proxy
                 WebProxy wp = new WebProxy(obj.ToString());
                 if (obj.ToString() != "0")
@@ -185,9 +265,7 @@ namespace test1234
                 {
 
 
-
-                    mtNum.WaitOne();
-                    if (num == minrange) //check for end
+                    if (num == minrange && skipedPages.Count == 0) //check for end
                     {
                         if (threadlist.Count != 1)
                         {
@@ -197,7 +275,7 @@ namespace test1234
                         else
                         {
                             threadlist.Remove(Thread.CurrentThread.Name);
-                            Console.WriteLine("Last thread " + Thread.CurrentThread.Name + " stopped. ");
+                            Console.WriteLine("Last thread " + Thread.CurrentThread.Name + " stopped. All pages checked.");
                             flagStop = false;
                         }
                         break;
@@ -205,21 +283,24 @@ namespace test1234
 
                     string htmlstr1 = "";
                     string strtmp = "";
-                    skipedPagesMutex.WaitOne();
                     if (skipedPages.Count != 0)//choose dec or "skiped page". second mean that some exception can happened when cheked this page before
                     {
-                        htmlstr1 = skipedPages[0];
-                        skipedPages.Remove(skipedPages[0]);
+                        lock (skipedPagesLock)
+                        {
+                            htmlstr1 = skipedPages.Last();
+                            skipedPages.RemoveAt(skipedPages.Count - 1);
+                        }
                     }
                     else
                     {
-                        strtmp = num.ToString();
-                        num--;
+                        lock (lockNum)
+                        {
+                            strtmp = num.ToString();
+                            num--;
+                        }
                     }
-                    skipedPagesMutex.ReleaseMutex();
 
 
-                    mtNum.ReleaseMutex();
 
 
                     if (htmlstr1 == "")//create link for number
@@ -256,19 +337,25 @@ namespace test1234
 
                     if (flagStop)//check for stop by user. not all msg writed to console
                     {
-                        threadListMutex.WaitOne();
                         if (threadlist.Count != 1)
                         {
-                            threadlist.Remove(Thread.CurrentThread.Name);
+                            lock (threadListLock)
+                            {
+                                threadlist.Remove(Thread.CurrentThread.Name);
+                            }
                             Console.WriteLine("Thread " + Thread.CurrentThread.Name + " stopped, " + threadlist.Count + " still active");
                         }
                         else
                         {
-                            threadlist.Remove(Thread.CurrentThread.Name);
+                            lock (threadListLock)
+                            {
+                                threadlist.Remove(Thread.CurrentThread.Name);
+                            }
                             Console.WriteLine("Last thread " + Thread.CurrentThread.Name + " stopped. ");
+                            Console.WriteLine("Last number of file is " + num + " + " + skipedPages.Count + " pages were skiped.");
+                            settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
                             flagStop = false;
                         }
-                        threadListMutex.ReleaseMutex();
                         break;
                     }
                 }
@@ -276,15 +363,17 @@ namespace test1234
             }
             catch (Exception e)
             {
-                threadListMutex.WaitOne();
-                threadlist.Remove(Thread.CurrentThread.Name);
-                threadListMutex.ReleaseMutex();
+                lock (threadListLock)
+                {
+                    threadlist.Remove(Thread.CurrentThread.Name);
+                }
 
-                skipedPagesMutex.WaitOne();
-                skipedPages.Add(htmlstr);
-                skipedPagesMutex.ReleaseMutex();
+                lock (skipedPagesLock)
+                {
+                    skipedPages.Add(htmlstr);
+                }
 
-
+                Console.WriteLine("Im dead :( " + Thread.CurrentThread.Name + ". EXP " + e.Message);
 
                 StreamWriter sw = new StreamWriter("log" + substring[0] + ".txt", true);
                 sw.WriteLine(DateTime.Now.ToString() + " " + htmlstr + " " + e.ToString());
@@ -331,8 +420,6 @@ namespace test1234
                 WebClient cl = new WebClient();
 
 
-                threadListMutex.WaitOne();
-
 
                 foreach (string proxy in proxylistfromfile)
                 {
@@ -347,7 +434,10 @@ namespace test1234
                             Thread tr = new Thread(ProxyThread);
                             tr.Name = proxy;
                             tr.Start(proxy);
-                            threadlist.Add(proxy);
+                            lock (threadListLock)
+                            {
+                                threadlist.Add(proxy);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -355,10 +445,7 @@ namespace test1234
                         }
 
                 }
-                threadListMutex.ReleaseMutex();
 
-
-                GC.Collect();
             }
             else
                 ProxyCheckTimer.Dispose();

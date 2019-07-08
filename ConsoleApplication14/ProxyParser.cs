@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.IO;
 
-namespace ConsoleApplication14
+namespace VkDocsBrute
 {
     class ProxyParser
     {
