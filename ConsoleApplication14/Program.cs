@@ -7,21 +7,22 @@ using System.Net;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Diagnostics;
+using System.Net.Http;
 
 namespace VkDocsBrute
 {
     class Program
     {
         static int id = 1;
-        static int minrange = 0;
-        static int maxrange = 455000000;
+        static int minRange = 0;
+        static int maxRange = 455000000;
         static int num = 455000000;
         static bool flagStop = false;
         static SettingsFile settingsFile = new SettingsFile();
 
         static List<string> skipedPages = new List<string>();
-        static List<string> threadlist = new List<string>();
-        static Timer ProxyCheckTimer; //check dead proxy
+        static List<string> threadList = new List<string>();
+        static Timer proxyCheckTimer; //check dead proxy
         static object lockNum = new object();
         static object threadListLock = new object();
         static object skipedPagesLock = new object();
@@ -35,16 +36,14 @@ namespace VkDocsBrute
                 if (settingsFile.ReadSettingsFile(out Dictionary<string, int> settings))
                 {
                     id = settings["id"];
-                    minrange = settings["minrange"];
+                    minRange = settings["minrange"];
                     num = settings["num"];
                 }
                 else
-                    settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                    settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
             }
             else
-            {
-                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
-            }
+                settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
 
 
             Console.WriteLine("Команды help, status, id, minrange, maxrange, start, stop, exit");
@@ -52,12 +51,12 @@ namespace VkDocsBrute
 
 
 
-            while (true) //console menu stuff
+            while (true) //console menu stuff. 
             {
                 switch (cmd)
                 {
                     case "id":
-                        if (threadlist.Count != 0)
+                        if (threadList.Count != 0)
                         {
                             Console.WriteLine("Остановите выполнение, прежде чем изменять переменные.");
                         }
@@ -67,7 +66,7 @@ namespace VkDocsBrute
                             if (IsInt(Console.ReadLine(), out int result))
                             {
                                 id = result;
-                                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                                settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
                                 Console.WriteLine("ID изменен.");
                             }
                             else
@@ -76,17 +75,17 @@ namespace VkDocsBrute
                         cmd = Console.ReadLine();
                         break;
                     case "minrange":
-                        if (threadlist.Count != 0)
+                        if (threadList.Count != 0)
                         {
                             Console.WriteLine("Остановите выполнение, прежде чем изменять переменные.");
                         }
                         else
                         {
-                            Console.WriteLine("Текущий minRange " + minrange + ". Для изменения введите новый числовой minRange.");
+                            Console.WriteLine("Текущий minRange " + minRange + ". Для изменения введите новый числовой minRange.");
                             if (IsInt(Console.ReadLine(), out int result1))
                             {
-                                minrange = result1;
-                                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                                minRange = result1;
+                                settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
                                 Console.WriteLine("minRange изменен.");
                             }
                             else
@@ -95,7 +94,7 @@ namespace VkDocsBrute
                         cmd = Console.ReadLine();
                         break;
                     case "maxrange":
-                        if (threadlist.Count != 0)
+                        if (threadList.Count != 0)
                         {
                             Console.WriteLine("Остановите выполнение, прежде чем изменять переменные.");
                         }
@@ -105,7 +104,7 @@ namespace VkDocsBrute
                             if (IsInt(Console.ReadLine(), out int result2))
                             {
                                 num = result2;
-                                settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                                settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
                                 Console.WriteLine("maxRange изменен.");
                             }
                             else
@@ -114,12 +113,12 @@ namespace VkDocsBrute
                         cmd = Console.ReadLine();
                         break;
                     case "start":
-                        if (threadlist.Count == 0)
+                        if (threadList.Count == 0)
                             flagStop = false;
-                        if (!flagStop && threadlist.Count == 0)
+                        if (!flagStop && threadList.Count == 0)
                         {
-                            maxrange = num;
-                            Thread tr = new Thread(start);
+                            maxRange = num;
+                            Thread tr = new Thread(StartBrute);
                             tr.Start(id);
                         }
                         else
@@ -128,29 +127,29 @@ namespace VkDocsBrute
                         break;
                     case "help":
                         Console.WriteLine();
-                        Console.Write("help - эта команда \nid - смена целевого id. \nminrange - смена нижнего порога работы программы \nmaxrange - смена верхнего порога работы программы \nstatus - информация о текущих переменных или ходе работы \nstop - остановка текущей задачи \nexit - выход из приложения\n");
+                        Console.Write("help - эта команда \nid - смена целевого id. \nminrange - смена нижнего порога работы программы \nmaxrange - смена верхнего порога работы программы \nstatus - информация о текущих переменных или ходе работы \nstop - остановка текущей задачи \nexit - выход из приложения\nФайл proxylist.txt в папке с приложением позволит использовать прокси. Формат файла - ip:port прокси построчно\n");
                         cmd = Console.ReadLine();
                         break;
                     case "threadlist":
-                        foreach (string thread in threadlist)
+                        foreach (string thread in threadList)
                             Console.WriteLine(thread);
                         cmd = Console.ReadLine();
                         break;
                     case "status":
-                        if (threadlist.Count != 0)
-                            Console.WriteLine(DateTime.Now.ToString() + " проверено " + (maxrange - num).ToString() + " из " + (maxrange - minrange).ToString() + ", количество потоков - " + threadlist.Count + ". Текущий id " + id);
+                        if (threadList.Count != 0)
+                            Console.WriteLine(DateTime.Now.ToString() + " проверено " + (maxRange - num).ToString() + " из " + (maxRange - minRange).ToString() + ", количество потоков - " + threadList.Count + ". Текущий id " + id);
                         else
-                            Console.WriteLine("ID - " + id + ", minRange - " + minrange + ", num - " + num);
+                            Console.WriteLine("ID - " + id + ", minRange - " + minRange + ", num - " + num);
                         cmd = Console.ReadLine();
                         break;
                     case "exit":
-                        settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                        settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
                         Environment.Exit(0);
                         break;
                     case "stop":
                         flagStop = true;
-                        if (ProxyCheckTimer != null)
-                            ProxyCheckTimer.Change(-1, Timeout.Infinite);
+                        if (proxyCheckTimer != null)
+                            proxyCheckTimer.Change(-1, Timeout.Infinite);
                         cmd = Console.ReadLine();
                         break;
                     default:
@@ -175,49 +174,28 @@ namespace VkDocsBrute
 
 
 
-        //not used
-        public static void consoleId(string get)
-        {
-            if (get == "id")
-                Console.WriteLine("текущйи id - " + id.ToString() + ", для изменения пропищите id num, где num новый id в численном представлении");
-            else
-            {
-                Char delimiter = ' ';
-                string[] substring = get.Split(delimiter);
-            }
-        }
-
-
-
-
-
-
-
-
-
-
-        static void start(object id)
+        static void StartBrute(object id)
         {
             GC.Collect(2);
-            string[] proxylistfromfile = null; //get proxy list
+            string[] proxyListFromFile = null; //get proxy list
             if (System.IO.File.Exists("proxylist.txt"))
-                proxylistfromfile = System.IO.File.ReadAllLines("proxylist.txt");
+                proxyListFromFile = System.IO.File.ReadAllLines("proxylist.txt");
 
 
             //looking for alive proxy, if list exist
-            if (proxylistfromfile != null)
+            if (proxyListFromFile != null)
             {
-                proxylistfromfile = CheckProxyFile(proxylistfromfile);
+                proxyListFromFile = CheckProxyFile(proxyListFromFile);
 
-                Console.WriteLine("Proxy in file - " + proxylistfromfile.Length + ". Checking alive proxy.");
+                Console.WriteLine("Proxy in file - " + proxyListFromFile.Length + ". Checking alive proxy.");
 
-                string[] proxylist = new string[proxylistfromfile.Length];
+                string[] proxyList = new string[proxyListFromFile.Length];
                 int k = 0;
-                for (int i = 0; i < proxylistfromfile.Length; i++)
+                for (int i = 0; i < proxyListFromFile.Length; i++)
                 {
-                    if (ProxyStatusCheck(proxylistfromfile[i]))
+                    if (ProxyStatusCheck(proxyListFromFile[i]))
                     {
-                        proxylist[k] = proxylistfromfile[i];
+                        proxyList[k] = proxyListFromFile[i];
                         k++;
                     }
                 }
@@ -228,9 +206,9 @@ namespace VkDocsBrute
                 for (int i = 0; i < k; i++)
                 {
                     Thread tr = new Thread(ProxyThread);
-                    tr.Name = proxylist[i];
-                    tr.Start(proxylist[i]);
-                    threadlist.Add(proxylist[i]);
+                    tr.Name = proxyList[i];
+                    tr.Start(proxyList[i]);
+                    threadList.Add(proxyList[i]);
                     Console.WriteLine("Thread " + tr.Name + " have starting.");
                 }
             }
@@ -238,10 +216,10 @@ namespace VkDocsBrute
             tre.Name = "own pc";
             Console.WriteLine("Thread " + tre.Name + " have starting.");
             tre.Start("0");
-            threadlist.Add(tre.Name);
+            threadList.Add(tre.Name);
 
-            if (proxylistfromfile != null)
-                ProxyCheckTimer = new Timer(CheckProxyTimerCallback, null, 0, 1200 * proxylistfromfile.Length);
+            if (proxyListFromFile != null)
+                proxyCheckTimer = new Timer(CheckProxyTimerCallback, null, 0, 1200 * proxyListFromFile.Length);
 
         }
 
@@ -255,12 +233,12 @@ namespace VkDocsBrute
             string[] substring = obj.ToString().Split(delimiter);
             try
             {
+
+
                 WebClient client = new WebClient();//start webclient with/without proxy
                 WebProxy wp = new WebProxy(obj.ToString());
                 if (obj.ToString() != "0")
                     client.Proxy = wp;
-
-                //wp.UseDefaultCredentials = true;//idk why its here
 
 
 
@@ -268,21 +246,24 @@ namespace VkDocsBrute
                 {
 
 
-                    if (num == minrange && skipedPages.Count == 0) //check for end
+
+
+                    if (num == minRange && skipedPages.Count == 0) //check for end
                     {
-                        if (threadlist.Count != 1)
+                        if (threadList.Count != 1)
                         {
-                            threadlist.Remove(Thread.CurrentThread.Name);
-                            Console.WriteLine("Thread " + Thread.CurrentThread.Name + " stopped, " + threadlist.Count + " still active");
+                            threadList.Remove(Thread.CurrentThread.Name);
+                            Console.WriteLine("Thread " + Thread.CurrentThread.Name + " stopped, " + threadList.Count + " still active");
                         }
                         else
                         {
-                            threadlist.Remove(Thread.CurrentThread.Name);
+                            threadList.Remove(Thread.CurrentThread.Name);
                             Console.WriteLine("Last thread " + Thread.CurrentThread.Name + " stopped. All pages checked.");
                             flagStop = false;
                         }
                         break;
                     }
+
 
                     string htmlstr1 = "";
                     string strtmp = "";
@@ -305,7 +286,6 @@ namespace VkDocsBrute
 
 
 
-
                     if (htmlstr1 == "")//create link for number
                     {
                         if (strtmp.Length < 9)
@@ -316,9 +296,10 @@ namespace VkDocsBrute
                         htmlstr = htmlstr1;
 
 
+
                     string htmlCode = client.DownloadString(htmlstr);//get page
 
-                    //Console.WriteLine(htmlCode);
+
                     if (!htmlCode.Contains("Файл был удалён") && !htmlCode.Contains("File deleted"))//check for file on page. mb isnt good solution
                     {
                         if (htmlCode.Contains("Этот документ был удалён из общего доступа") || htmlCode.Contains("This document is available only to its owner"))
@@ -338,29 +319,31 @@ namespace VkDocsBrute
                     }
 
 
+
                     if (flagStop)//check for stop by user. not all msg writed to console
                     {
-                        if (threadlist.Count != 1)
+                        if (threadList.Count != 1)
                         {
                             lock (threadListLock)
                             {
-                                threadlist.Remove(Thread.CurrentThread.Name);
+                                threadList.Remove(Thread.CurrentThread.Name);
                             }
-                            Console.WriteLine("Thread " + Thread.CurrentThread.Name + " stopped, " + threadlist.Count + " still active");
+                            Console.WriteLine("Thread " + Thread.CurrentThread.Name + " stopped, " + threadList.Count + " still active");
                         }
                         else
                         {
                             lock (threadListLock)
                             {
-                                threadlist.Remove(Thread.CurrentThread.Name);
+                                threadList.Remove(Thread.CurrentThread.Name);
                             }
                             Console.WriteLine("Last thread " + Thread.CurrentThread.Name + " stopped. ");
                             Console.WriteLine("Last number of file is " + num + " + " + skipedPages.Count + " pages were skiped.");
-                            settingsFile.CreateOrUpdateSettingsFile(num, minrange, id);
+                            settingsFile.CreateOrUpdateSettingsFile(num, minRange, id);
                             flagStop = false;
                         }
                         break;
                     }
+
                 }
 
             }
@@ -368,7 +351,7 @@ namespace VkDocsBrute
             {
                 lock (threadListLock)
                 {
-                    threadlist.Remove(Thread.CurrentThread.Name);
+                    threadList.Remove(Thread.CurrentThread.Name);
                 }
 
                 lock (skipedPagesLock)
@@ -414,21 +397,21 @@ namespace VkDocsBrute
         {
             if (!flagStop)
             {
-                string[] proxylistfromfile = null;
+                string[] proxyListFromFile = null;
                 if (System.IO.File.Exists("proxylist.txt"))
-                    proxylistfromfile = System.IO.File.ReadAllLines("proxylist.txt");
+                    proxyListFromFile = System.IO.File.ReadAllLines("proxylist.txt");
 
-                proxylistfromfile = CheckProxyFile(proxylistfromfile);
+                proxyListFromFile = CheckProxyFile(proxyListFromFile);
 
                 WebClient cl = new WebClient();
 
 
 
-                foreach (string proxy in proxylistfromfile)
+                foreach (string proxy in proxyListFromFile)
                 {
                     if (flagStop)
                         break;
-                    if (!threadlist.Contains(proxy))
+                    if (!threadList.Contains(proxy))
                         try
                         {
                             WebProxy wp = new WebProxy(proxy);
@@ -439,7 +422,7 @@ namespace VkDocsBrute
                             tr.Start(proxy);
                             lock (threadListLock)
                             {
-                                threadlist.Add(proxy);
+                                threadList.Add(proxy);
                             }
                         }
                         catch (Exception e)
@@ -454,14 +437,11 @@ namespace VkDocsBrute
 
 
 
-        private static string[] CheckProxyFile(string[] proxylistfromfile)//check for dublicate
+        private static string[] CheckProxyFile(string[] proxyListFromFile)//check for dublicate
         {
-            List<string> tmp = new List<string>();
-            for (int i = 0; i < proxylistfromfile.Length; i++)
-                if (!tmp.Contains(proxylistfromfile[i]))
-                    tmp.Add(proxylistfromfile[i]);
-            System.IO.File.WriteAllLines("proxylist.txt", tmp.ToArray());
-            return tmp.ToArray();
+            proxyListFromFile = proxyListFromFile.Distinct().ToArray();
+            System.IO.File.WriteAllLines("proxylist.txt", proxyListFromFile);
+            return proxyListFromFile;
         }
     }
 
