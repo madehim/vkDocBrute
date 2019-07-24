@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2003
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkDocsBrut", "ConsoleApplication14\VkDocsBrut.csproj", "{53507698-461C-4805-8242-3165213A6B2F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkDocsBrut", "VkDocsBrut\VkDocsBrut.csproj", "{53507698-461C-4805-8242-3165213A6B2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
